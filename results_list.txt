@@ -1,0 +1,8 @@
+res0: 'new', RAID 10 HDDs, cfq, ext3
+res1: 'old', SSD, noop, xfs
+res2: 'new', RAID 10 HDDs, noop, xfs
+res3: 'new', FIO, noop, xfs
+res4: 'new', Virident, ??, xfs
+res5: res3 re-test
+res6: res4 re-test
+res7: 'new', SSD, noop, xfs (hw-raid SSD 5x RAID 0?)

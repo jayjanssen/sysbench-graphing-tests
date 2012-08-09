@@ -1,0 +1,35 @@
+#!/bin/sh
+
+
+WT=500
+RT=7200
+
+ROWS=25000000
+THREADS=16
+
+# Determine run number for selecting an output directory
+RUN_NUMBER=$1
+OUTDIR=res$RUN_NUMBER
+mkdir -p $OUTDIR
+
+
+function test_stage()
+{
+  PIDLIST=""
+  for i in `seq 1 16` ; do
+    ( time mysql -e "select avg(id) from sbtest$i FORCE KEY (PRIMARY); " sbtest  ) > $OUTDIR/warmup.${i}.out 2>&1   &
+   PIDLIST="$PIDLIST $!"
+  done
+
+  wait $PIDLIST
+}
+
+
+runid="initial"
+
+test_stage
+
+iostat -dx 10 $(($RT/10+1))  >> $OUTDIR/iostat.$runid.res &
+dstat -t -v --nocolor --output $OUTDIR/dstat.$runid.res 10 $(($RT/10+1)) > $OUTDIR/dstat_plain.$runid.res  &
+
+sysbench --test=tests/db/oltp.lua  --oltp_tables_count=16 --oltp-table-size=$ROWS --rand-init=on  --num-threads=$THREADS --oltp-read-only=off --report-interval=10 --rand-type=zipf --rand-zipf-t=0.9 --mysql-socket=/tmp/mysql.sock --max-time=$RT --max-requests=0 --mysql-user=sbtest --mysql-password=sbtest  --percentile=99 run | tee -a $OUTDIR/sysbench.$runid.res
